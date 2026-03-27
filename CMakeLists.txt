@@ -201,9 +201,10 @@ install(
   TARGETS
     robot_geometric_shapes
     ${PROJECT_NAME}
-#    test_filter
     self_filter
-  DESTINATION lib/${PROJECT_NAME}
+  ARCHIVE DESTINATION lib
+  LIBRARY DESTINATION lib
+  RUNTIME DESTINATION lib/${PROJECT_NAME}
 )
 
 #
@@ -216,6 +217,8 @@ ament_export_include_directories(
 ament_export_libraries(
   robot_geometric_shapes
   ${PROJECT_NAME}
+  ${BULLET_LIBRARIES}
+  ${ASSIMP_LIBRARIES}
 )
 
 # Exporting Bullet as a standard ament dependency doesn't typically do anything,
