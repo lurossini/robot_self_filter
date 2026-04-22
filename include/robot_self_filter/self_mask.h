@@ -16,6 +16,7 @@
 #include <resource_retriever/retriever.hpp>
 #include <boost/filesystem.hpp>
 #include <boost/function.hpp>
+#include <cmath>
 #include <string>
 #include <vector>
 #include <algorithm>
@@ -104,6 +105,33 @@ static shapes::Shape* constructShape(const urdf::Geometry *geom)
             result = shapes::createMeshFromBinaryDAE(mesh->filename.c_str());
           else
             result = shapes::createMeshFromBinaryStlData(reinterpret_cast<char*>(res.data.get()), res.size);
+
+          // Apply URDF collision mesh scale directly to geometry vertices.
+          if (result)
+          {
+            const double sx = mesh->scale.x;
+            const double sy = mesh->scale.y;
+            const double sz = mesh->scale.z;
+
+            const bool has_non_unit_scale =
+              std::fabs(sx - 1.0) > 1e-9 ||
+              std::fabs(sy - 1.0) > 1e-9 ||
+              std::fabs(sz - 1.0) > 1e-9;
+
+            if (has_non_unit_scale)
+            {
+              auto *mesh_shape = dynamic_cast<shapes::Mesh*>(result);
+              if (mesh_shape && mesh_shape->vertices)
+              {
+                for (unsigned int i = 0; i < mesh_shape->vertexCount; ++i)
+                {
+                  mesh_shape->vertices[3 * i + 0] *= sx;
+                  mesh_shape->vertices[3 * i + 1] *= sy;
+                  mesh_shape->vertices[3 * i + 2] *= sz;
+                }
+              }
+            }
+          }
         }
       }
       break;
