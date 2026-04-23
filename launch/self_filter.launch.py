@@ -52,12 +52,13 @@ def generate_launch_description():
             {
                 'topic1': "/hesai_jt128_front/points",
                 'topic2': "/hesai_jt128_back/points",
+                'sync_slop': 0.02,
                 'output_topic': "/points_filtered",
                 'target_frame': "base_link",
                 'voxel_leaf_size': 0.05,
                 'box_x': 2.0,
                 'box_y': 1.5,
-                'use_sim_time': LaunchConfiguration('use_sim_time')  # Pass use_sim_time to the node
+                'use_sim_time': LaunchConfiguration('use_sim_time')  
             }
         ],
         arguments=[
