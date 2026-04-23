@@ -43,6 +43,29 @@ def generate_launch_description():
     # Create a log action to print the config
     log_config = LogInfo(msg=LaunchConfiguration('filter_config'))
 
+    point_cloud_manager_node = Node(
+        package='isaaclab_height_scan_builder',
+        executable='point_cloud_manager_node',
+        name='point_cloud_manager',
+        output='screen',
+        parameters=[
+            {
+                'topic1': "/hesai_jt128_front/points",
+                'topic2': "/hesai_jt128_back/points",
+                'output_topic': "/points_filtered",
+                'target_frame': "base_link",
+                'voxel_leaf_size': 0.05,
+                'box_x': 2.0,
+                'box_y': 1.5,
+                'use_sim_time': LaunchConfiguration('use_sim_time')  # Pass use_sim_time to the node
+            }
+        ],
+        arguments=[
+            "--ros-args",
+            "--log-level", "tf2_buffer:=error",
+        ]
+    )
+
     self_filter_node = Node(
         package='robot_self_filter',
         executable='self_filter',
@@ -57,15 +80,24 @@ def generate_launch_description():
                     value_type=str
                 ),
                 'zero_for_removed_points': LaunchConfiguration('zero_for_removed_points'),
-                'use_sim_time': LaunchConfiguration('use_sim_time') # Use the launch argument
+                'use_sim_time': ParameterValue(
+                    LaunchConfiguration('use_sim_time'),
+                    value_type=bool
+                )
             }
         ],
         remappings=[
             ('/robot_description', LaunchConfiguration('description_name')),
-            ('/cloud_in', LaunchConfiguration('in_pointcloud_topic')),
+            ('/cloud_in', "/points_filtered"),
             ('/cloud_out', LaunchConfiguration('out_pointcloud_topic')),
         ],
+        arguments=[
+            "--ros-args",
+            "--log-level", "tf2_buffer:=error",
+        ]
     )
+
+    
 
     return LaunchDescription([
         description_name_arg,
@@ -77,5 +109,6 @@ def generate_launch_description():
         filter_config_arg,
         use_sim_time_arg, # Add to launch description
         log_config,
+        point_cloud_manager_node,
         self_filter_node
     ])

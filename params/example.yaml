@@ -1,7 +1,7 @@
 # ============================ filter_improved.yaml ============================
 self_filter:
   ros__parameters:
-    sensor_frame: "hesai_jt128_link"
+    sensor_frame: ""
 
     # For spheres (single scale & padding)
     default_sphere_scale: 1.0
@@ -36,42 +36,6 @@ self_filter:
         - knee_pitch_2_link
         - knee_pitch_3_link
         - knee_pitch_4_link
+        - hesai_jt128_front_link
+        - hesai_jt128_back_link
 
-
-      knee_pitch_1_link:
-        cylinder_scale: [1.0, 1.0]
-        cylinder_padding: [0.05, 0.1, 0.22]  
-
-
-
-      # # Example custom overrides:
-      # TELE:
-      #   # If TELE is a box, define 3 scale factors and 3 paddings
-      #   box_scale: [1.0, 1.0, 1.0]
-      #   box_padding: [0.05, 0.05, 0.05]
-      
-      # STICK:
-      #   box_scale: [1.1, 1.1, 1.7]
-      #   box_padding: [0.05, 0.22, 0.05]
-      
-      # BOOM:
-      #   # If BOOM is a box, define 3 scale factors and 3 paddings
-      #   box_scale: [1.0, 1.0, 1.3]
-      #   box_padding: [0.05, 0.1, 0.22]
-
-      # LF_WHEEL:
-      #   # If wheels are cylinders: radial scale, vertical scale, radial padding, vertical padding
-      #   cylinder_scale: [1.0, 1.0]
-      #   cylinder_padding: [0.05, 0.3]
-
-      # LH_WHEEL:
-      #   cylinder_scale: [1.0, 1.0]
-      #   cylinder_padding: [0.05, 0.3]
-
-      # RF_WHEEL:
-      #   cylinder_scale: [1.0, 1.0]
-      #   cylinder_padding: [0.05, 0.3]
-
-      # RH_WHEEL:
-      #   cylinder_scale: [1.0, 1.0]
-      #   cylinder_padding: [0.05, 0.3]
