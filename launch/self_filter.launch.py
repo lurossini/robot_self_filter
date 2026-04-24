@@ -52,7 +52,7 @@ def generate_launch_description():
             {
                 'topic1': "/hesai_jt128_front/points",
                 'topic2': "/hesai_jt128_back/points",
-                'sync_slop': 0.02,
+                'sync_slop': 0.01,
                 'output_topic': "/points_filtered",
                 'target_frame': "base_link",
                 'voxel_leaf_size': 0.05,
