@@ -33,6 +33,12 @@ def generate_launch_description():
     filter_config_arg = DeclareLaunchArgument(
         'filter_config'
     )
+    # world_frame = DeclareLaunchArgument(
+    #     'world_frame',
+    #     default_value=True
+    # )
+
+
     # Declare use_sim_time argument
     use_sim_time_arg = DeclareLaunchArgument(
         'use_sim_time',
@@ -42,6 +48,25 @@ def generate_launch_description():
 
     # Create a log action to print the config
     log_config = LogInfo(msg=LaunchConfiguration('filter_config'))
+
+    # if world_frame.value:
+    world_frame_publisher_node = Node(
+        package = 'isaaclab_height_scan_builder',
+        executable = 'imu_world_frame_publisher_node',
+        name = 'imu_world_frame_publisher',
+        output = 'screen',
+        parameters = [
+            {
+                'use_sim_time': LaunchConfiguration('use_sim_time'),
+                'imu_topic': "/xbotcore/imu/imu_link",
+                'world_frame': "world",
+                'base_link': "pelvis",
+                'imu_frame': "imu_link",
+                "sync_slop": 0.02,
+                "queue_size": 10
+            }
+        ]
+    )
 
     point_cloud_manager_node = Node(
         package='isaaclab_height_scan_builder',
@@ -54,7 +79,8 @@ def generate_launch_description():
                 'topic2': "/hesai_jt128_back/points",
                 'sync_slop': 0.01,
                 'output_topic': "/points_filtered",
-                'target_frame': "base_link",
+                'filter_frame': "base_link",
+                'target_frame': "world", #"base_link" if world_frame.value else "world",
                 'voxel_leaf_size': 0.05,
                 'box_x': 2.0,
                 'box_y': 1.5,
@@ -98,6 +124,23 @@ def generate_launch_description():
         ]
     )
 
+    heigh_scan_builder_node = Node(
+        package='isaaclab_height_scan_builder',
+        executable='height_scan_builder_node',
+        name='height_scan_builder',
+        output='screen',
+        parameters=[
+            {
+                'use_sim_time': LaunchConfiguration('use_sim_time'),
+                "target_frame": "world"
+            }
+        ],
+        arguments=[
+            "--ros-args",
+            "--log-level", "tf2_buffer:=error",
+        ]
+    )
+
     
 
     return LaunchDescription([
@@ -110,6 +153,8 @@ def generate_launch_description():
         filter_config_arg,
         use_sim_time_arg, # Add to launch description
         log_config,
+        world_frame_publisher_node, # if world_frame.value else LogInfo(msg="World frame publisher node is disabled"),
         point_cloud_manager_node,
-        self_filter_node
+        self_filter_node,
+        heigh_scan_builder_node
     ])
