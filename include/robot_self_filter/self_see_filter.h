@@ -57,6 +57,10 @@ public:
       {1.0, 1.0}, rcl_interfaces::msg::ParameterDescriptor());
     node_->declare_parameter<std::vector<double>>("default_cylinder_padding",
       {0.01, 0.01}, rcl_interfaces::msg::ParameterDescriptor());
+    node_->declare_parameter<std::vector<double>>("default_mesh_scale",
+      {1.0, 1.0, 1.0}, rcl_interfaces::msg::ParameterDescriptor());
+    node_->declare_parameter<std::vector<double>>("default_mesh_padding",
+      {0.01, 0.01, 0.01}, rcl_interfaces::msg::ParameterDescriptor());
     node_->declare_parameter<double>("default_sphere_scale", 1.0, rcl_interfaces::msg::ParameterDescriptor());
     node_->declare_parameter<double>("default_sphere_padding", 0.01, rcl_interfaces::msg::ParameterDescriptor());
 
@@ -69,6 +73,8 @@ public:
     node_->get_parameter("default_box_padding", default_box_pad_);
     node_->get_parameter("default_cylinder_scale", default_cyl_scale_);
     node_->get_parameter("default_cylinder_padding", default_cyl_pad_);
+    node_->get_parameter("default_mesh_scale", default_mesh_scale_);
+    node_->get_parameter("default_mesh_padding", default_mesh_pad_);
     node_->get_parameter("default_sphere_scale", default_sphere_scale_);
     node_->get_parameter("default_sphere_padding", default_sphere_pad_);
 
@@ -92,22 +98,31 @@ public:
       std::string box_padding_key = "self_see_links." + lname + ".box_padding";
       std::string cyl_scale_key   = "self_see_links." + lname + ".cylinder_scale";
       std::string cyl_padding_key = "self_see_links." + lname + ".cylinder_padding";
+      std::string mesh_scale_key   = "self_see_links." + lname + ".mesh_scale";
+      std::string mesh_padding_key = "self_see_links." + lname + ".mesh_padding";
       std::string padding_key     = "self_see_links." + lname + ".padding";
       std::string scale_key       = "self_see_links." + lname + ".scale";
 
       node_->declare_parameter<std::vector<double>>(box_scale_key,
-        std::vector<double>(), rcl_interfaces::msg::ParameterDescriptor());
+        default_box_scale_, rcl_interfaces::msg::ParameterDescriptor());
       node_->declare_parameter<std::vector<double>>(box_padding_key,
-        std::vector<double>(), rcl_interfaces::msg::ParameterDescriptor());
+        default_box_pad_, rcl_interfaces::msg::ParameterDescriptor());
       node_->get_parameter(box_scale_key, li.box_scale);
       node_->get_parameter(box_padding_key, li.box_padding);
 
       node_->declare_parameter<std::vector<double>>(cyl_scale_key,
-        std::vector<double>(), rcl_interfaces::msg::ParameterDescriptor());
+        default_cyl_scale_, rcl_interfaces::msg::ParameterDescriptor());
       node_->declare_parameter<std::vector<double>>(cyl_padding_key,
-        std::vector<double>(), rcl_interfaces::msg::ParameterDescriptor());
+        default_cyl_pad_, rcl_interfaces::msg::ParameterDescriptor());
       node_->get_parameter(cyl_scale_key, li.cylinder_scale);
       node_->get_parameter(cyl_padding_key, li.cylinder_padding);
+
+      node_->declare_parameter<std::vector<double>>(mesh_scale_key,
+        default_mesh_scale_, rcl_interfaces::msg::ParameterDescriptor());
+      node_->declare_parameter<std::vector<double>>(mesh_padding_key,
+        default_mesh_pad_, rcl_interfaces::msg::ParameterDescriptor());
+      node_->get_parameter(mesh_scale_key, li.mesh_scale);
+      node_->get_parameter(mesh_padding_key, li.mesh_padding);
 
       node_->declare_parameter<double>(padding_key, default_sphere_pad_, rcl_interfaces::msg::ParameterDescriptor());
       node_->declare_parameter<double>(scale_key, default_sphere_scale_, rcl_interfaces::msg::ParameterDescriptor());
@@ -237,6 +252,8 @@ protected:
   std::vector<double> default_box_pad_;
   std::vector<double> default_cyl_scale_;
   std::vector<double> default_cyl_pad_;
+  std::vector<double> default_mesh_scale_;
+  std::vector<double> default_mesh_pad_;
   double default_sphere_scale_ = 1.0;
   double default_sphere_pad_ = 0.01;
 

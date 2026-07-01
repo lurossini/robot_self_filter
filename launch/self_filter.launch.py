@@ -2,7 +2,7 @@
 import os
 from launch import LaunchDescription
 from launch.actions import DeclareLaunchArgument, LogInfo
-from launch.substitutions import LaunchConfiguration, PythonExpression
+from launch.substitutions import LaunchConfiguration
 from launch_ros.actions import Node
 from launch_ros.parameter_descriptions import ParameterValue
 
@@ -33,65 +33,9 @@ def generate_launch_description():
     filter_config_arg = DeclareLaunchArgument(
         'filter_config'
     )
-    # world_frame = DeclareLaunchArgument(
-    #     'world_frame',
-    #     default_value=True
-    # )
-
-
-    # Declare use_sim_time argument
-    use_sim_time_arg = DeclareLaunchArgument(
-        'use_sim_time',
-        default_value='true', # Keep default as true for standalone use
-        description='Use simulation (Gazebo) clock if true'
-    )
 
     # Create a log action to print the config
     log_config = LogInfo(msg=LaunchConfiguration('filter_config'))
-
-    # if world_frame.value:
-    world_frame_publisher_node = Node(
-        package = 'isaaclab_height_scan_builder',
-        executable = 'imu_world_frame_publisher_node',
-        name = 'imu_world_frame_publisher',
-        output = 'screen',
-        parameters = [
-            {
-                'use_sim_time': LaunchConfiguration('use_sim_time'),
-                'imu_topic': "/xbotcore/imu/imu_link",
-                'world_frame': "world",
-                'base_link': "pelvis",
-                'imu_frame': "imu_link",
-                "sync_slop": 0.02,
-                "queue_size": 10
-            }
-        ]
-    )
-
-    point_cloud_manager_node = Node(
-        package='isaaclab_height_scan_builder',
-        executable='point_cloud_manager_node',
-        name='point_cloud_manager',
-        output='screen',
-        parameters=[
-            {
-                'topic1': "/hesai_jt128_front/points",
-                'topic2': "/hesai_jt128_back/points",
-                'sync_slop': 0.01,
-                'output_topic': "/points_filtered",
-                'filter_frame': "base_link",
-                'target_frame': "world", #"base_link" if world_frame.value else "world",
-                'voxel_leaf_size': 0.05,
-                'box_x': 2.0,
-                'box_y': 1.5,
-                'use_sim_time': LaunchConfiguration('use_sim_time')  
-            }
-        ],
-        arguments=[
-            "--ros-args",
-            "--log-level", "tf2_buffer:=error",
-        ]
-    )
 
     self_filter_node = Node(
         package='robot_self_filter',
@@ -115,7 +59,7 @@ def generate_launch_description():
         ],
         remappings=[
             ('/robot_description', LaunchConfiguration('description_name')),
-            ('/cloud_in', "/points_filtered"),
+            ('/cloud_in', LaunchConfiguration('in_pointcloud_topic')),
             ('/cloud_out', LaunchConfiguration('out_pointcloud_topic')),
         ],
         arguments=[
@@ -123,25 +67,6 @@ def generate_launch_description():
             "--log-level", "tf2_buffer:=error",
         ]
     )
-
-    heigh_scan_builder_node = Node(
-        package='isaaclab_height_scan_builder',
-        executable='height_scan_builder_node',
-        name='height_scan_builder',
-        output='screen',
-        parameters=[
-            {
-                'use_sim_time': LaunchConfiguration('use_sim_time'),
-                "target_frame": "world"
-            }
-        ],
-        arguments=[
-            "--ros-args",
-            "--log-level", "tf2_buffer:=error",
-        ]
-    )
-
-    
 
     return LaunchDescription([
         description_name_arg,
@@ -151,10 +76,6 @@ def generate_launch_description():
         out_pointcloud_topic_arg,
         robot_description_arg,
         filter_config_arg,
-        use_sim_time_arg, # Add to launch description
         log_config,
-        world_frame_publisher_node, # if world_frame.value else LogInfo(msg="World frame publisher node is disabled"),
-        point_cloud_manager_node,
         self_filter_node,
-        heigh_scan_builder_node
     ])

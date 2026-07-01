@@ -397,6 +397,11 @@ bool Box::intersectsRay(const tf2::Vector3 &origin,
 ConvexMesh::ConvexMesh() : Body()
 {
   m_type       = shapes::MESH;
+  for (int i = 0; i < 3; i++)
+  {
+    m_scale[i]   = 1.0;
+    m_padding[i] = 0.0;
+  }
   m_radiusB    = 0.0;
   m_radiusBSqr = 0.0;
 }
@@ -590,28 +595,93 @@ void ConvexMesh::useDimensions(const shapes::Shape *shape)
 }
 void ConvexMesh::updateInternalData()
 {
-  tf2::Transform pose = m_pose;
-  pose.setOrigin(m_pose * m_boxOffset);
-  m_boundingBox.setPose(pose);
-  // Could apply uniform scale/padding if desired, left as-is for example
-  m_iPose   = m_pose.inverse();
-  m_center  = m_pose * m_meshCenter;
-  m_radiusB = m_meshRadiusB; 
-  m_radiusBSqr = m_radiusB * m_radiusB;
+  m_iPose = m_pose.inverse();
+  m_center = m_pose * m_meshCenter;
 
   m_scaledVertices.resize(m_vertices.size());
-  for (size_t i=0; i<m_vertices.size(); i++)
+  for (size_t i = 0; i < m_vertices.size(); i++)
   {
-    // Uniform scaling placeholder
-    m_scaledVertices[i] = m_vertices[i];
+    tf2::Vector3 v = m_vertices[i] - m_meshCenter;
+    tf2::Vector3 sv(
+        v.x() * m_scale[0],
+        v.y() * m_scale[1],
+        v.z() * m_scale[2]);
+    m_scaledVertices[i] = m_meshCenter + sv;
   }
+
+  m_planes.clear();
+  for (size_t i = 0; i < m_triangles.size() / 3; ++i)
+  {
+    const tf2::Vector3 &p1 = m_scaledVertices[m_triangles[3 * i + 0]];
+    const tf2::Vector3 &p2 = m_scaledVertices[m_triangles[3 * i + 1]];
+    const tf2::Vector3 &p3 = m_scaledVertices[m_triangles[3 * i + 2]];
+    tf2::Vector3 e1 = p2 - p1;
+    e1.normalize();
+    tf2::Vector3 e2 = p3 - p1;
+    e2.normalize();
+    tf2::Vector3 planeNormal = e1.cross(e2);
+    if (planeNormal.length2() > 1e-6)
+    {
+      planeNormal.normalize();
+      Eigen::Vector4d planeEq;
+      planeEq << planeNormal.x(), planeNormal.y(), planeNormal.z(), -planeNormal.dot(p1);
+
+      // Check orientation
+      double dist = planeEq(0) * m_meshCenter.x() + planeEq(1) * m_meshCenter.y() + planeEq(2) * m_meshCenter.z() + planeEq(3);
+      if (dist > 0)
+        planeEq = -planeEq;
+
+      m_planes.push_back(planeEq);
+    }
+  }
+
+  double max_dist_sq = 0.0;
+  for (const auto &v : m_scaledVertices)
+  {
+    double d2 = v.distance2(m_meshCenter);
+    if (d2 > max_dist_sq)
+      max_dist_sq = d2;
+  }
+  
+  // Account for padding threshold in bounding radius/box
+  double max_pad = std::max({m_padding[0], m_padding[1], m_padding[2]});
+  m_radiusB = std::sqrt(max_dist_sq) + max_pad;
+  m_radiusBSqr = m_radiusB * m_radiusB;
+
+  // Update bounding box
+  double maxX = -1e30, maxY = -1e30, maxZ = -1e30;
+  double minX = 1e30, minY = 1e30, minZ = 1e30;
+  for (const auto &v : m_scaledVertices)
+  {
+    if (v.x() > maxX) maxX = v.x(); if (v.y() > maxY) maxY = v.y(); if (v.z() > maxZ) maxZ = v.z();
+    if (v.x() < minX) minX = v.x(); if (v.y() < minY) minY = v.y(); if (v.z() < minZ) minZ = v.z();
+  }
+  
+  // Add padding to bounding box
+  minX -= m_padding[0]; maxX += m_padding[0];
+  minY -= m_padding[1]; maxY += m_padding[1];
+  minZ -= m_padding[2]; maxZ += m_padding[2];
+
+  shapes::Box *box_shape = new shapes::Box(maxX - minX, maxY - minY, maxZ - minZ);
+  m_boundingBox.setDimensions(box_shape);
+  delete box_shape;
+
+  tf2::Vector3 boxOffset((minX + maxX) / 2.0, (minY + maxY) / 2.0, (minZ + maxZ) / 2.0);
+  tf2::Transform pose = m_pose;
+  pose.setOrigin(m_pose * boxOffset);
+  m_boundingBox.setPose(pose);
 }
 bool ConvexMesh::isPointInsidePlanes(const tf2::Vector3 &point) const
 {
   for (auto &plane : m_planes)
   {
-    double dist = plane(0)*point.x() + plane(1)*point.y() + plane(2)*point.z() + plane(3);
-    if (dist > 0.0) return false;
+    double dist = plane(0) * point.x() + plane(1) * point.y() + plane(2) * point.z() + plane(3);
+    // Project 3D padding onto plane normal
+    double threshold = std::fabs(plane(0)) * m_padding[0] +
+                       std::fabs(plane(1)) * m_padding[1] +
+                       std::fabs(plane(2)) * m_padding[2];
+    if (dist > threshold)
+      return false;
   }
   return true;
 }
